@@ -1,0 +1,4 @@
+-- Referencia humana. Flyway ejecuta las migraciones reales en backend/src/main/resources/db/migration.
+-- Las tablas de M01 son: usuarios, roles, permisos, usuario_roles, rol_permisos,
+-- codigos_recuperacion, intentos_acceso, auditoria y sesiones_revocadas.
+-- No contiene contraseñas ni secretos. Consulte V1__security_schema.sql y V2__roles_and_permissions.sql.

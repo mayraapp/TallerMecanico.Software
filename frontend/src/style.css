@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme { --color-ink: #061926; --color-steel: #0c3854; --color-signal: #11b9d1; --color-warm: #f1f8fb; --font-sans: "Inter", "Segoe UI", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+html { background: #eef6fa; }
+body { margin: 0; min-width: 320px; background: #eef6fa; color: #102c3e; }
+button, input, select { font: inherit; }
+.field { @apply w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100; }
+.label { @apply mb-2 block text-sm font-bold text-slate-700; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50; }
+.btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-cyan-700/20 transition hover:bg-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-50; }
+.btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50; }
+.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus:ring-4 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-50; }
+.card { @apply rounded-2xl border border-white/80 bg-white/90 shadow-[0_12px_35px_-22px_rgba(15,58,81,.35)] ring-1 ring-slate-200/80; }
+.status-active { @apply bg-emerald-100 text-emerald-800; }.status-inactive { @apply bg-slate-200 text-slate-700; }.status-blocked { @apply bg-rose-100 text-rose-800; }
+
+.brand-mark { @apply relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-cyan-400 font-black tracking-tighter text-slate-950 shadow-lg shadow-cyan-500/25; }
+.brand-mark::after { content: ""; @apply absolute -bottom-4 -right-3 h-9 w-9 rounded-full border-[6px] border-white/35; }
+.brand-wordmark { @apply font-black tracking-[-.045em] text-white; }
+.brand-wordmark span { @apply text-cyan-300; }
+.app-canvas { min-height:100vh; background-image:radial-gradient(circle at 80% -5%,rgba(34,211,238,.15),transparent 30rem),linear-gradient(180deg,#f7fbfd,#edf5f8); }
+.sidebar { background:linear-gradient(180deg,#061926,#08273a); box-shadow:16px 0 42px -32px rgba(6,25,38,.65); }
+.nav-item { @apply flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/8 hover:text-white; }
+.nav-item.router-link-active { @apply bg-cyan-400 text-slate-950 shadow-sm hover:bg-cyan-300; }
+.topbar { @apply border-b border-slate-200/70 bg-white/75 backdrop-blur-xl; }
+.auth-page { min-height:100vh; background:#eef6fa; }
+.auth-pane { background-image:radial-gradient(circle at 85% 10%,rgba(34,211,238,.15),transparent 19rem); }
+.auth-hero { position:relative; overflow:hidden; background:linear-gradient(145deg,#061926 4%,#0b3550 58%,#0e5c76 130%); }
+.auth-hero::before { content:""; position:absolute; width:36rem; height:36rem; border-radius:999px; right:-13rem; top:-10rem; background:radial-gradient(circle,rgba(34,211,238,.38),rgba(34,211,238,0)); }
+.auth-hero > * { position:relative; z-index:1; }
+.security-pill { @apply flex items-center gap-3 rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-slate-200 backdrop-blur-sm; }
+.control-hero { position:relative; overflow:hidden; background:linear-gradient(115deg,#062238,#0a4260 63%,#0c7b8d); box-shadow:0 18px 40px -26px rgba(5,63,91,.65); }
+.metric-card { @apply relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-[0_12px_35px_-22px_rgba(15,58,81,.35)]; }
+.metric-card::before { content:""; @apply absolute left-0 top-0 h-full w-1 bg-cyan-400; }

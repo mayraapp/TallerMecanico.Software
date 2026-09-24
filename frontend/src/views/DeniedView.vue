@@ -1,0 +1,2 @@
+<script setup>import { ShieldAlert } from 'lucide-vue-next'</script>
+<template><div class="flex min-h-screen items-center justify-center bg-slate-100 p-5"><main class="card max-w-lg p-9 text-center"><div class="mx-auto inline-flex rounded-2xl bg-rose-100 p-4 text-rose-700"><ShieldAlert :size="36"/></div><h1 class="mt-5 text-3xl font-black">Acceso denegado</h1><p class="mt-3 text-slate-600">Tu cuenta no tiene el permiso requerido para abrir esta pantalla.</p><RouterLink class="btn-primary mt-6" to="/">Volver al panel</RouterLink></main></div></template>
