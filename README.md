@@ -4,6 +4,8 @@ Proyecto web del taller mecánico. La entrega actual corresponde a **M01: seguri
 
 La documentación completa de la fase, los módulos terminados, las tablas, los archivos generados, la ubicación segura de la configuración local y las instrucciones de publicación está en [Planeacion_FaseInicial.md](Planeacion_FaseInicial.md).
 
+La matriz de controles de seguridad aplicada a la fase está en [docs/Buenas_Practicas_OWASP_M01.md](docs/Buenas_Practicas_OWASP_M01.md).
+
 ## Estructura
 
 ```text
