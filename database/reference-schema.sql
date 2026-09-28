@@ -1,4 +1,12 @@
 -- Referencia humana. Flyway ejecuta las migraciones reales en backend/src/main/resources/db/migration.
 -- Las tablas de M01 son: usuarios, roles, permisos, usuario_roles, rol_permisos,
 -- codigos_recuperacion, intentos_acceso, auditoria y sesiones_revocadas.
--- No contiene contraseñas ni secretos. Consulte V1__security_schema.sql y V2__roles_and_permissions.sql.
+-- Fase 02 agrega: clientes y direcciones_cliente.
+-- clientes es independiente de talleres: no contiene taller_id. En una fase futura
+-- podrá relacionarse con varios talleres mediante una tabla cliente_taller; esa tabla
+-- no existe todavía y no se crean talleres ficticios en esta fase.
+-- clientes tiene restricciones únicas para correo personal normalizado, teléfono
+-- personal normalizado y la combinación nombre normalizado + fecha de nacimiento.
+-- direcciones_cliente tiene una relación uno a uno con clientes para el caso de uso
+-- actual de registro inicial. No contiene contraseñas ni secretos.
+-- Consulte las migraciones V1__security_schema.sql a V4__clientes_registro.sql.

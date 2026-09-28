@@ -6,6 +6,8 @@ html { background: #eef6fa; }
 body { margin: 0; min-width: 320px; background: #eef6fa; color: #102c3e; }
 button, input, select { font: inherit; }
 .field { @apply w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100; }
+.field-invalid { @apply border-rose-400 bg-rose-50/50 focus:border-rose-500 focus:ring-rose-100; }
+.field-error { @apply mt-1.5 text-xs font-semibold leading-5 text-rose-700; }
 .label { @apply mb-2 block text-sm font-bold text-slate-700; }
 .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50; }
 .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-cyan-700/20 transition hover:bg-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-200 disabled:cursor-not-allowed disabled:opacity-50; }
@@ -32,3 +34,4 @@ button, input, select { font: inherit; }
 .control-hero { position:relative; overflow:hidden; background:linear-gradient(115deg,#062238,#0a4260 63%,#0c7b8d); box-shadow:0 18px 40px -26px rgba(5,63,91,.65); }
 .metric-card { @apply relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-[0_12px_35px_-22px_rgba(15,58,81,.35)]; }
 .metric-card::before { content:""; @apply absolute left-0 top-0 h-full w-1 bg-cyan-400; }
+.toast-enter-active, .toast-leave-active { transition: all .24s ease; }.toast-enter-from, .toast-leave-to { opacity:0; transform:translateY(12px) translateX(14px); }

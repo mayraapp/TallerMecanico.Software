@@ -6,6 +6,7 @@ application-local.properties
 
 # Java / Maven
 backend/target/
+backend/uploads/
 *.class
 .mvn/timing.properties
 

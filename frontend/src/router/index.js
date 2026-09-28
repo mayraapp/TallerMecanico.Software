@@ -9,6 +9,7 @@ import TemporaryPasswordView from '../views/TemporaryPasswordView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import UsersView from '../views/UsersView.vue'
 import RegisterUserView from '../views/RegisterUserView.vue'
+import ClientRegistrationView from '../views/ClientRegistrationView.vue'
 import RolesView from '../views/RolesView.vue'
 import AuditView from '../views/AuditView.vue'
 import DeniedView from '../views/DeniedView.vue'
@@ -20,6 +21,7 @@ const routes = [
   { path: '/change-password', component: TemporaryPasswordView, meta: { auth: true, passwordOnly: true } },
   { path: '/', component: DashboardView, meta: { auth: true } },
   { path: '/register-user', component: RegisterUserView, meta: { auth: true, permission: 'USERS_CREATE' } },
+  { path: '/clientes/nuevo', component: ClientRegistrationView, meta: { auth: true, permission: 'CLIENTE_CREAR' } },
   { path: '/users', component: UsersView, meta: { auth: true, permission: 'USERS_VIEW' } }, { path: '/roles', component: RolesView, meta: { auth: true, permission: 'PERMISSIONS_MANAGE' } },
   { path: '/audit', component: AuditView, meta: { auth: true, permission: 'AUDIT_VIEW' } }, { path: '/denied', component: DeniedView, meta: { auth: true } }, { path: '/:pathMatch(.*)*', component: NotFoundView, meta: { public: true } },
 ]
