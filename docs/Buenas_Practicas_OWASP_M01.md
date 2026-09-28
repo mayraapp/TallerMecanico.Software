@@ -1,112 +1,117 @@
-# Buenas prácticas OWASP — AutoManager, Fase M01
+# Matriz de buenas prácticas OWASP para Spring Boot — AutoManager M01
 
-**Proyecto:** AutoManager — Taller mecánico  
-**Fase:** M01: seguridad, autenticación, autorización, roles y usuarios  
-**Fecha de revisión:** 28 de septiembre de 2026  
-**Referencia:** [OWASP Top 10:2025](https://owasp.org/Top10/2025/)
+- **Proyecto:** AutoManager — Taller mecánico
+- **Fase evaluada:** M01: seguridad, autenticación, autorización, roles y usuarios
+- **Tecnología evaluada:** Java 26, Spring Boot, Spring Security, JPA, Flyway, MySQL, Vue 3
+- **Fecha de revisión:** 28 de septiembre de 2026
 
-## 1. Propósito y alcance
+## Cómo leer este documento
 
-Este documento relaciona las prácticas de seguridad aplicadas en la Fase M01 de AutoManager con los riesgos del **OWASP Top 10:2025**. Su alcance se limita a las funciones desarrolladas: registro público, autenticación, recuperación de contraseña, sesiones, usuarios, roles, permisos y auditoría.
+OWASP no es una biblioteca que se instala. Es una guía para decidir qué controles de seguridad debe tener una aplicación. Spring Boot y Spring Security son las herramientas con las que esos controles se programan.
 
-No certifica que la aplicación esté libre de vulnerabilidades ni sustituye una prueba de penetración. Los módulos de clientes, vehículos, inventario, empleados, servicios, órdenes de trabajo, proveedores y reportes no forman parte de esta fase; deberán aplicar la misma matriz cuando sean desarrollados.
+GitHub Markdown no permite colorear texto de forma fiable; por eso se usan indicadores de color:
 
-### Criterio de estado
+| Indicador | Significado |
+|---|---|
+| 🟢 | Implementado y localizado en el código actual. |
+| 🟡 | Existe una base, pero falta endurecerlo, configurarlo en producción o comprobarlo con pruebas. |
+| 🔴 | No está implementado; se indica exactamente dónde incorporarlo. |
 
-- **✅ Aplicado:** existe una medida implementada en el código de esta fase.
-- **◐ Parcial / siguiente paso:** existe una base, pero requiere configuración de producción, automatización o una validación adicional.
-- **☐ Pendiente:** aún no se implementa porque está fuera del alcance de M01.
+> Esta es una revisión de código de la Fase M01, no una certificación de seguridad ni una prueba de penetración. Los módulos de clientes, vehículos, órdenes de trabajo e inventario deberán revisarse cuando se desarrollen.
 
-## 2. Matriz de cumplimiento
+## Resumen ejecutivo
 
-| Riesgo OWASP 2025 | Riesgo para AutoManager | Medida aplicada en M01 | Estado | Evidencia técnica |
-|---|---|---|---|---|
-| **A01: Control de acceso roto** | Que una persona consulte o modifique usuarios, roles, auditoría o datos que no le corresponden. | Control de acceso basado en roles y permisos (RBAC). Las rutas de API exigen autenticación y autorizaciones específicas; el router del frontend evita la navegación a pantallas no autorizadas. | ✅ | `SecurityConfig`, `UserController`, `RoleController`, `AuditController`, `frontend/src/router/index.js` |
-| **A02: Configuración insegura** | Exponer credenciales, aceptar orígenes no autorizados o publicar parámetros de desarrollo. | Datos sensibles mediante variables de entorno; `backend/.env` está ignorado por Git. CORS se configura para el origen del frontend y existe un archivo de ejemplo sin secretos. | ✅ | `.gitignore`, `.env.example`, `backend/.env` *(local, no versionado)*, `AppSecurityProperties`, `SecurityConfig` |
-| **A03: Fallos en la cadena de suministro de software** | Incorporar una dependencia con vulnerabilidades conocidas. | Dependencias declaradas y versionadas mediante Maven y npm. | ◐ | `backend/pom.xml`, `frontend/package.json`, archivos de bloqueo de dependencias |
-| **A04: Fallos criptográficos** | Exponer contraseñas, sesiones o datos sensibles. | Contraseñas cifradas con BCrypt. JWT firmado con secreto externo. Sesión en cookie `HttpOnly` y `SameSite=Strict`; el modo seguro de cookie puede habilitarse para HTTPS. | ◐ | `AuthService`, `PasswordPolicy`, `JwtService`, `SecurityConfig`, `AppSecurityProperties` |
-| **A05: Inyección** | Alterar consultas, comandos o datos mediante entradas de formularios. | Uso de Spring Data JPA, DTOs con validaciones y migraciones Flyway. Las operaciones de usuarios y roles se realizan por repositorios, no mediante SQL concatenado. | ✅ | `dto/`, `repository/`, `exception/GlobalExceptionHandler`, `resources/db/migration/` |
-| **A06: Diseño inseguro** | Dar acceso automático a cuentas recién registradas o no definir reglas de privilegios. | El registro público crea cuentas con estado `PENDING`, inactivas y sin roles. Un superadministrador debe activar la cuenta y asignarle permisos. | ✅ | `PublicRegistrationController`, `UserService`, `UserStatus`, migración `V3__...sql` |
-| **A07: Fallos de autenticación** | Suplantar cuentas, mantener sesiones inválidas o abusar de la recuperación de contraseña. | Inicio y cierre de sesión, JWT con expiración, cierre de sesiones revocadas, política de contraseña, recuperación con código temporal y bloqueo temporal tras intentos fallidos. | ✅ | `AuthController`, `AuthService`, `JwtAuthenticationFilter`, `RateLimitService`, `LoginAttempt`, `PasswordRecoveryCode`, `RevokedSession` |
-| **A08: Fallos de integridad de software o datos** | Ejecutar cambios de esquema no controlados o aceptar datos alterados. | Esquema de base de datos versionado con Flyway; JWT firmado y DTOs validados en el servidor. | ◐ | `resources/db/migration/V1__...sql`, `V2__...sql`, `V3__...sql`, `JwtService`, DTOs |
-| **A09: Fallos de registro y alertas de seguridad** | No detectar accesos, cambios administrativos o intentos fallidos. | Auditoría persistente de acciones y registro de intentos de inicio de sesión. Las pantallas administrativas permiten consultar auditoría según permiso. | ◐ | `AuditService`, `AuditLog`, `LoginAttempt`, `AuditController`, `frontend/src/views/AuditView.vue` |
-| **A10: Manejo inseguro de condiciones excepcionales** | Mostrar trazas internas al usuario o procesar fallos de forma inconsistente. | Manejo global de excepciones, errores de validación controlados y respuestas API consistentes. | ✅ | `ApiException`, `GlobalExceptionHandler`, `UiAlert.vue` |
+| Estado | Cantidad | Lectura rápida |
+|---|---:|---|
+| 🟢 Implementado | 8 | Base de identidad, roles, contraseñas, validación, auditoría y migraciones. |
+| 🟡 Por endurecer | 9 | Requieren configuración de producción, crecimiento de la aplicación o una decisión de seguridad. |
+| 🔴 Faltante | 5 | Deben priorizarse antes de publicar la aplicación en Internet. |
 
-## 3. Controles implementados por componente
+## Matriz principal: OWASP aplicado a Spring Boot
 
-### Backend
+| # | Práctica OWASP / Spring Boot | Estado | Dónde se usa hoy | Qué protege | Qué falta o dónde agregarlo |
+|---:|---|:---:|---|---|---|
+| 1 | **Denegar por defecto y autorizar en el servidor** | 🟢 | [SecurityConfig.java](../backend/src/main/java/com/taller/m01/config/SecurityConfig.java), [UserController.java](../backend/src/main/java/com/taller/m01/controller/UserController.java), [RoleController.java](../backend/src/main/java/com/taller/m01/controller/RoleController.java), [AuditController.java](../backend/src/main/java/com/taller/m01/controller/AuditController.java) | A01: evita que una persona sin permiso ejecute operaciones administrativas. | Mantener `anyRequest().authenticated()` y añadir `@PreAuthorize` a cada endpoint futuro. El control del frontend es solo visual; el backend debe seguir siendo la autoridad. |
+| 2 | **Permisos por objeto, no solo por pantalla** | 🟡 | Permisos de usuarios, roles y auditoría se validan por autoridad en los controladores. | A01 / IDOR: evita que un usuario consulte o modifique el registro de otra persona por cambiar un ID en la URL. | Al crear clientes, vehículos u órdenes, añadir la comprobación de propietario/sucursal en el servicio, por ejemplo en `ClientService`, `VehicleService` y `WorkOrderService`; no basta con `hasAuthority`. |
+| 3 | **Hash seguro de contraseñas** | 🟢 | [SecurityConfig.java](../backend/src/main/java/com/taller/m01/config/SecurityConfig.java) crea `BCryptPasswordEncoder`; [AuthService.java](../backend/src/main/java/com/taller/m01/service/AuthService.java) lo usa al crear o cambiar contraseñas. | A04/A07: impide almacenar contraseñas legibles en MySQL. | Conservar BCrypt o migrar deliberadamente a Argon2 si se toma esa decisión. Nunca guardar, registrar ni devolver una contraseña. |
+| 4 | **Política de contraseña moderna** | 🟡 | [PasswordPolicy.java](../backend/src/main/java/com/taller/m01/service/PasswordPolicy.java) exige 8 caracteres, mayúscula, minúscula, número y símbolo. | A07: reduce contraseñas fáciles de adivinar. | Antes de producción, permitir frases largas (hasta 64 caracteres o más), preferir longitud sobre reglas de composición y bloquear contraseñas filtradas/comunes. Sin MFA, OWASP recomienda una longitud mínima mayor. |
+| 5 | **Inicio de sesión resistente a ataques automatizados** | 🟢 | [AuthService.java](../backend/src/main/java/com/taller/m01/service/AuthService.java), [RateLimitService.java](../backend/src/main/java/com/taller/m01/service/RateLimitService.java), [LoginAttempt.java](../backend/src/main/java/com/taller/m01/entity/LoginAttempt.java) | A07: reduce fuerza bruta y credential stuffing. Se bloquea una cuenta activa tras cinco intentos y se limita la frecuencia de solicitudes. | Añadir MFA para superadministradores cuando exista un entorno real de producción. |
+| 6 | **Recuperación de contraseña segura** | 🟡 | [AuthController.java](../backend/src/main/java/com/taller/m01/controller/AuthController.java), [AuthService.java](../backend/src/main/java/com/taller/m01/service/AuthService.java), [PasswordRecoveryCode.java](../backend/src/main/java/com/taller/m01/entity/PasswordRecoveryCode.java) | A07: usa código aleatorio, hash SHA-256, vencimiento de 10 minutos, un uso y límite de intentos. | El código se escribe en el log solo en modo desarrollo. Para producción: fijar `DEVELOPMENT_MODE=false`, enviar el código por correo seguro y no mostrarlo ni registrarlo. |
+| 7 | **JWT firmado, corto y revocable** | 🟢 | [JwtService.java](../backend/src/main/java/com/taller/m01/security/JwtService.java), [JwtAuthenticationFilter.java](../backend/src/main/java/com/taller/m01/security/JwtAuthenticationFilter.java), [RevokedSession.java](../backend/src/main/java/com/taller/m01/entity/RevokedSession.java) | A04/A07: verifica firma, expiración, estado activo, versión de sesión y revocación al cerrar sesión. | Conservar un secreto Base64 de al menos 32 bytes fuera del repositorio y rotarlo si se expone. |
+| 8 | **Cookie de sesión protegida** | 🟡 | [AuthController.java](../backend/src/main/java/com/taller/m01/controller/AuthController.java) crea `TM_SESSION` con `HttpOnly` y `SameSite=Strict`. | A04/A07: JavaScript no puede leer el token y el navegador limita envío entre sitios. | En producción configurar `COOKIE_SECURE=true` y servir solo HTTPS. Validar el dominio final del frontend y backend antes de cambiar la política `SameSite`. |
+| 9 | **Protección CSRF para autenticación basada en cookies** | 🔴 | Actualmente [SecurityConfig.java](../backend/src/main/java/com/taller/m01/config/SecurityConfig.java) contiene `csrf(csrf -> csrf.disable())` y el JWT se lee desde la cookie `TM_SESSION`. | A01/A07: evita que otro sitio induzca al navegador autenticado a ejecutar una operación con su cookie. | En `SecurityConfig.java`, habilitar protección CSRF con `CookieCsrfTokenRepository`; en [client.js](../frontend/src/api/client.js), enviar el encabezado CSRF requerido. También añadir `X-XSRF-TOKEN` a los encabezados CORS permitidos. Este punto debe resolverse antes de producción. |
+| 10 | **CORS de mínimo privilegio** | 🟡 | [SecurityConfig.java](../backend/src/main/java/com/taller/m01/config/SecurityConfig.java) permite un único `FRONTEND_ORIGIN`, métodos concretos y credenciales. | A02: evita que sitios ajenos llamen a la API con cookies del usuario. | En despliegue definir el dominio HTTPS real en `FRONTEND_ORIGIN`; no usar `*` cuando `allowCredentials` está activo. Ajustar los encabezados permitidos al habilitar CSRF. |
+| 11 | **Validar datos en el límite de la API** | 🟢 | DTOs en [AuthDtos.java](../backend/src/main/java/com/taller/m01/dto/AuthDtos.java) y [UserDtos.java](../backend/src/main/java/com/taller/m01/dto/UserDtos.java); controladores con `@Valid`. | A05/A10: bloquea datos incompletos o malformados antes de llegar a la lógica o base de datos. | Todo DTO nuevo debe usar validaciones de Bean Validation; no usar entidades JPA como cuerpo directo de una petición. |
+| 12 | **Evitar inyección SQL** | 🟢 | Repositorios de Spring Data en [repository/](../backend/src/main/java/com/taller/m01/repository/) y DTOs validados. | A05: evita que valores del usuario se interpreten como SQL. | Si algún módulo requiere SQL nativo, usar parámetros nombrados o preparados; nunca concatenar valores recibidos en una consulta. |
+| 13 | **Errores controlados y sin trazas internas** | 🟢 | [GlobalExceptionHandler.java](../backend/src/main/java/com/taller/m01/exception/GlobalExceptionHandler.java), [application.properties](../backend/src/main/resources/application.properties) | A10: evita revelar clases, consultas, secretos o detalles de infraestructura. | Mantener `server.error.include-message=never` y registrar internamente la causa técnica sin enviarla al usuario. |
+| 14 | **Cabeceras HTTP de seguridad** | 🔴 | No hay configuración explícita de CSP, `X-Content-Type-Options`, `Referrer-Policy`, anti-clickjacking u HSTS en el código revisado. | A02/A04: reduce XSS, clickjacking, MIME sniffing y conexiones HTTP inseguras. | Agregar `headers(...)` en `SecurityConfig.java`. Configurar CSP según los recursos reales; `frameOptions().deny()`, `contentTypeOptions()`, `referrerPolicy()` y HSTS solo bajo HTTPS. Comprobarlas también en el proxy o proveedor de hosting. |
+| 15 | **Secretos y configuración fuera de Git** | 🟡 | [application.properties](../backend/src/main/resources/application.properties) lee variables; `.gitignore` excluye `.env`; [.env.example](../.env.example) es plantilla sin valores reales. | A02/A04: evita publicar contraseña MySQL y secreto JWT. | Para producción, cargar secretos desde el gestor del proveedor de hosting y no desde una copia de `backend/.env`. Cambiar inmediatamente cualquier secreto expuesto. |
+| 16 | **Migraciones e integridad del esquema** | 🟢 | [db/migration/](../backend/src/main/resources/db/migration/) contiene `V1`, `V2` y `V3`; `spring.jpa.hibernate.ddl-auto=validate`. | A08: evita cambios manuales e inconsistentes en la base de datos. | Crear una nueva migración Flyway por cada cambio; no editar una migración ya aplicada en un ambiente compartido. |
+| 17 | **Auditoría y registro de eventos** | 🟡 | [AuditService.java](../backend/src/main/java/com/taller/m01/service/AuditService.java), [AuditLog.java](../backend/src/main/java/com/taller/m01/entity/AuditLog.java), [LoginAttempt.java](../backend/src/main/java/com/taller/m01/entity/LoginAttempt.java) | A09: permite investigar accesos, cambios de rol, bloqueos y administración de cuentas. | En producción, centralizar logs, definir alertas y una retención. No registrar contraseñas, tokens JWT ni códigos de recuperación. |
+| 18 | **Rate limiting apto para producción** | 🟡 | [RateLimitService.java](../backend/src/main/java/com/taller/m01/service/RateLimitService.java) limita por IP en memoria. | A07/A10: reduce abuso de login, recuperación y registro público. | Si la API se ejecuta en más de una instancia, trasladar el contador a Redis o a un servicio compartido. Definir limpieza/expiración de buckets para evitar crecimiento ilimitado en memoria. |
+| 19 | **Dependencias sin vulnerabilidades conocidas** | 🔴 | Dependencias declaradas en [pom.xml](../backend/pom.xml) y [package.json](../frontend/package.json), sin análisis automatizado configurado. | A03: reduce el uso de bibliotecas vulnerables. | Agregar análisis de dependencias en CI: plugin OWASP Dependency-Check o Dependabot para Maven; `npm audit`/Dependabot para el frontend. Corregir o justificar cada hallazgo antes de publicar. |
+| 20 | **Pruebas automáticas de seguridad** | 🔴 | El único test actual, [TallerSecurityApiApplicationTests.java](../backend/src/test/java/com/taller/m01/TallerSecurityApiApplicationTests.java), comprueba que el contexto inicia. | A01/A07/A10: evita regresiones que abran rutas, permisos o sesiones en futuros cambios. | Crear pruebas con `MockMvc` para 401 sin sesión, 403 sin permiso, 200 con permiso correcto, bloqueo tras cinco fallos, revocación de sesión, validación de DTOs y CSRF cuando se habilite. |
+| 21 | **Transporte HTTPS y cookie segura** | 🔴 | El ambiente local usa HTTP y `COOKIE_SECURE` puede estar en `false`, lo cual es válido solo para desarrollo. | A04: impide que credenciales y cookies viajen sin cifrado en redes reales. | Configurar HTTPS en el proveedor de hosting, redirigir HTTP a HTTPS, activar `COOKIE_SECURE=true` y probar el flujo completo de sesión con dominios reales. |
+| 22 | **Cuenta MySQL con mínimo privilegio** | 🟡 | La aplicación se conecta con el usuario `taller_app`, configurado por variables de entorno. | A01/A02: limita el daño si se compromete la API. | En producción, otorgar solo privilegios necesarios sobre `taller_mecanico_db`; no otorgar privilegios globales, de administración de usuarios o de otras bases de datos. |
 
-1. **Autenticación y sesiones**
-   - `AuthController` expone las operaciones de inicio/cierre de sesión, usuario autenticado y recuperación de contraseña.
-   - `JwtService` emite y verifica JWT; `JwtAuthenticationFilter` obtiene la identidad para cada solicitud protegida.
-   - Las sesiones cerradas se registran en `RevokedSession`, evitando que un token revocado continúe siendo aceptado.
+## Prioridad de implementación
 
-2. **Autorización**
-   - `SecurityConfig` establece las rutas públicas y las rutas protegidas.
-   - Los controladores de usuarios, roles y auditoría aplican permisos de servidor. La interfaz no sustituye esta verificación.
-   - `Role`, `Permission` y `UserAccount` permiten representar el modelo RBAC en la base de datos.
+### 🔴 Prioridad 1 — Antes de publicar en Internet
 
-3. **Protección de credenciales**
-   - `AuthService` usa `BCryptPasswordEncoder`; no se almacenan contraseñas en texto plano.
-   - La política de contraseña se concentra en `PasswordPolicy`.
-   - El secreto JWT, la contraseña de MySQL y otros valores configurables permanecen fuera del código versionado.
+1. **CSRF:** habilitarlo porque la sesión se transporta en cookie.
+2. **HTTPS y `COOKIE_SECURE=true`:** sin HTTPS no debe existir un despliegue real con usuarios.
+3. **Cabeceras de seguridad:** configurarlas en Spring Security y comprobarlas en el navegador.
+4. **Pruebas de autorización:** demostrar automáticamente que cada rol obtiene solo los recursos permitidos.
+5. **Análisis de dependencias:** incluirlo en el proceso de integración antes de cada publicación.
 
-4. **Control de abuso y recuperación**
-   - `RateLimitService` limita solicitudes sensibles.
-   - `LoginAttempt` permite bloquear temporalmente después de intentos fallidos.
-   - `PasswordRecoveryCode` usa códigos con vencimiento y límite de intentos.
+### 🟡 Prioridad 2 — Al preparar el ambiente productivo
 
-5. **Validación, errores y auditoría**
-   - Los DTOs validan entradas antes de procesarlas.
-   - `GlobalExceptionHandler` evita respuestas improvisadas y estandariza los errores.
-   - `AuditService` registra eventos relevantes de administración y seguridad.
+1. Establecer `DEVELOPMENT_MODE=false` para que no se registren códigos de recuperación.
+2. Definir el dominio exacto en `FRONTEND_ORIGIN` y comprobar CORS.
+3. Trasladar el rate limit a almacenamiento compartido si se usan varias instancias.
+4. Centralizar auditoría y alertas.
+5. Dar al usuario MySQL únicamente los permisos imprescindibles.
 
-### Frontend
+### 🟡 Prioridad 3 — Al crear módulos futuros
 
-1. `stores/auth.js` conserva el usuario autenticado, sus roles y permisos durante la sesión de la interfaz.
-2. `router/index.js` protege rutas y redirige a la pantalla de acceso denegado cuando corresponde.
-3. `api/client.js` centraliza las solicitudes HTTP y envía credenciales de sesión de forma controlada.
-4. Las pantallas de inicio de sesión, registro, recuperación, usuarios, roles y auditoría consumen las validaciones y permisos definidos por la API.
+1. Comprobar permiso **y pertenencia del registro** en cada cliente, vehículo u orden de trabajo.
+2. Repetir validación de DTOs, migraciones Flyway y pruebas de autorización.
+3. Aplicar el mismo modelo de auditoría a cambios sensibles de cada módulo.
 
-## 4. Gestión segura de configuración
+## Ubicación de los controles más importantes
 
-| Recurso | Ubicación | Regla de seguridad |
+| Necesidad | Archivo principal | Responsabilidad |
 |---|---|---|
-| Credenciales locales y secreto JWT | `backend/.env` | Es un archivo local. No debe subirse, copiarse en capturas ni enviarse por chat. |
-| Plantilla de variables | `.env.example` | Puede versionarse porque no contiene valores reales. |
-| Exclusiones de Git | `.gitignore` | Excluye archivos `.env` y otros artefactos locales. |
-| Configuración de aplicación | `backend/src/main/resources/application.properties` | Lee los valores desde el entorno; no debe contener secretos reales. |
+| Reglas globales de seguridad, CORS, CSRF y cabeceras | [SecurityConfig.java](../backend/src/main/java/com/taller/m01/config/SecurityConfig.java) | Define qué rutas son públicas, qué peticiones necesitan sesión y qué defensas HTTP están activas. |
+| Creación y validación de JWT | [JwtService.java](../backend/src/main/java/com/taller/m01/security/JwtService.java) | Firma tokens, establece expiración y los valida. |
+| Lectura de sesión en cada petición | [JwtAuthenticationFilter.java](../backend/src/main/java/com/taller/m01/security/JwtAuthenticationFilter.java) | Lee la cookie, comprueba token, estado del usuario y revocación. |
+| Inicio, cierre y recuperación de contraseña | [AuthService.java](../backend/src/main/java/com/taller/m01/service/AuthService.java) | Aplica BCrypt, bloqueo, recuperación y auditoría. |
+| Política de contraseña | [PasswordPolicy.java](../backend/src/main/java/com/taller/m01/service/PasswordPolicy.java) | Define requisitos de contraseña; aquí se mejorará longitud/lista de contraseñas filtradas. |
+| Permisos de cada API | Controladores en [controller/](../backend/src/main/java/com/taller/m01/controller/) | Cada operación administrativa usa `@PreAuthorize`. |
+| Datos recibidos por API | [AuthDtos.java](../backend/src/main/java/com/taller/m01/dto/AuthDtos.java) y [UserDtos.java](../backend/src/main/java/com/taller/m01/dto/UserDtos.java) | Aplican validación antes de procesar la petición. |
+| Peticiones del frontend y futuro token CSRF | [client.js](../frontend/src/api/client.js) | Configura Axios, credenciales y deberá enviar la cabecera CSRF. |
+| Configuración y secretos | [application.properties](../backend/src/main/resources/application.properties), `backend/.env` | Lee variables del entorno; el archivo `.env` real no se versiona. |
+| Pruebas de seguridad | [backend/src/test/](../backend/src/test/) | Aquí se agregarán pruebas con MockMvc y Spring Security Test. |
 
-## 5. Recomendaciones obligatorias antes de producción
+## Reglas que deben mantenerse en todo código nuevo
 
-Estas acciones no se marcan como terminadas porque requieren infraestructura o automatización de despliegue:
+- No confiar en permisos ocultos en Vue: todo permiso importante se valida otra vez en Spring Boot.
+- No concatenar SQL, comandos, URLs ni HTML con datos del usuario.
+- No escribir secretos, tokens, contraseñas ni códigos temporales en commits, capturas, logs o respuestas de API.
+- Validar cada cuerpo de petición con DTOs y `@Valid`.
+- Usar una migración Flyway nueva para cada cambio de base de datos.
+- Incluir pruebas de 401, 403 y 200 para cada nueva operación protegida.
+- Revisar esta matriz cuando se añada un módulo o se cambie el modelo de sesión.
 
-- [ ] Publicar exclusivamente bajo HTTPS y establecer `COOKIE_SECURE=true`.
-- [ ] Configurar `FRONTEND_ORIGIN` con el dominio real de producción; no usar comodines en CORS.
-- [ ] Usar un gestor de secretos del proveedor de alojamiento, nunca un archivo `.env` publicado.
-- [ ] Rotar el secreto JWT y las contraseñas si se exponen o cambia una persona responsable.
-- [ ] Añadir análisis automatizado de dependencias (`mvn` y `npm`) al flujo de integración continua.
-- [ ] Ejecutar pruebas de autorización: cada rol debe intentar acceder a cada recurso que no le corresponda y recibir `403`.
-- [ ] Centralizar registros y crear alertas para bloqueos repetidos, cambios de rol, altas administrativas y fallos anómalos.
-- [ ] Limitar las cuentas de base de datos al mínimo privilegio necesario; el usuario de producción no debe administrar otros esquemas.
-- [ ] Hacer respaldo cifrado de la base de datos y probar la restauración.
-- [ ] Realizar una revisión de seguridad o prueba de penetración antes de manejar datos reales de clientes y vehículos.
+## Referencias oficiales
 
-## 6. Pruebas y evidencia de la Fase M01
+- [OWASP Top 10:2025](https://owasp.org/Top10/2025/)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
+- [OWASP Cross-Site Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [Spring Security: autenticación con usuario y contraseña](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/index.html)
+- [Spring Security: protección CSRF](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html)
 
-Durante la fase se verificó el arranque del contexto de Spring Boot y las migraciones de Flyway contra MySQL local. También se generó correctamente el build de producción del frontend con Vite. Estas verificaciones demuestran integración básica; no equivalen a una auditoría integral de seguridad.
+## Conclusión
 
-Para una entrega académica se recomienda demostrar, con capturas o una prueba guiada, al menos los siguientes casos:
-
-1. Un usuario no autenticado es redirigido a inicio de sesión al abrir una pantalla protegida.
-2. Un usuario con rol insuficiente obtiene acceso denegado al solicitar una operación administrativa.
-3. Una cuenta registrada públicamente permanece `PENDING` hasta que un superadministrador la active.
-4. Una contraseña incorrecta incrementa el intento de acceso y se aplica el bloqueo configurado.
-5. La recuperación de contraseña expira y no permite reutilizar un código ya usado.
-6. Un cambio de usuario, rol o estado deja un registro de auditoría.
-
-## 7. Conclusión
-
-AutoManager M01 incorpora una base de seguridad alineada con OWASP para la identidad y el control de acceso: contraseñas protegidas, sesiones con JWT, roles, permisos, validaciones, auditoría, control de intentos y configuración sin secretos en Git. Las tareas pendientes se concentran en endurecimiento y operación en producción, no en sustituir los controles ya implementados.
-
-La seguridad deberá revisarse nuevamente al desarrollar cada módulo futuro, especialmente antes de almacenar datos personales, vehículos, órdenes de trabajo o pagos.
+La Fase M01 cuenta con una buena base de seguridad de Spring Boot: autenticación, JWT, roles, permisos, BCrypt, validación, auditoría, recuperación y migraciones. No obstante, el estado correcto no es “todo terminado”: CSRF para las cookies, cabeceras HTTP, HTTPS, análisis de dependencias y pruebas automatizadas de autorización son los faltantes prioritarios. Esta matriz permite explicar al profesor qué está hecho, dónde está implementado y qué pasos concretos siguen.
