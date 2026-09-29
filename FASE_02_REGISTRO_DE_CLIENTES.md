@@ -2,7 +2,7 @@
 
 > Documentación técnica detallada del código: [FASE_02_DOCUMENTACION_CODIGO.md](FASE_02_DOCUMENTACION_CODIGO.md).
 
-> **Panel de avance:** ✅ Completado &nbsp;·&nbsp; 🟡 Parcial &nbsp;·&nbsp; ⏳ Pendiente
+> **Panel de avance:** ✅ Completado &nbsp;·&nbsp; 🟡 En validación &nbsp;·&nbsp; ⏳ Pendiente
 
 ## 1. Información general
 
@@ -37,8 +37,8 @@
 | F02-05 | Duplicados | Service/Repository/migración V4 | Reutilizado | Bloqueo por correo, teléfono y nombre-fecha. | HTTP 409 y restricciones únicas. | ✅ Completado |
 | F02-06 | Login | AuthFacade frontend/backend | Creado | Flujo Facade sin cambiar reglas de M01. | Pruebas Spring y HTTP. | ✅ Completado |
 | F02-07 | Usuarios | UsuarioFacade frontend/backend | Creado | Flujo interno por Facade. | Prueba Spring de alta interna. | ✅ Completado |
-| F02-08 | Navegación | AppShell, router y LoginView | Modificado | Oculta módulos futuros y redirige a clientes. | Build Vue; inspección visual de login. | 🟡 Parcial |
-| F02-09 | Notificaciones | notificacionFacade, registro cliente | Reutilizado/Modificado | Toast centralizado y errores de campo. | Prueba frontend; recorrido visual completo pendiente. | 🟡 Parcial |
+| F02-08 | Navegación | AppShell, router y LoginView | Modificado | Oculta módulos futuros y redirige a clientes. | Build Vue; inspección visual de login. | 🟡 En validación |
+| F02-09 | Notificaciones | notificacionFacade, registro cliente | Reutilizado/Modificado | Toast centralizado y errores de campo. | Prueba frontend; recorrido visual completo pendiente. | 🟡 En validación |
 | F02-10 | Documentación | Documentos de F02 | Creado/Modificado | Separa código de informe general. | Archivos Markdown presentes. | ✅ Completado |
 
 ## 4. Tabla de archivos
@@ -77,7 +77,7 @@
 | T-10 | Foto | MIME/firma/15 MB. | Válidas aceptadas; falsa, vacía o grande rechazadas. | 13 pruebas de cliente. | ✅ Completado |
 | T-11 | Persistencia | Cliente + dirección + auditoría. | Verificados en MySQL. | Consultas directas. | ✅ Completado |
 | T-12 | Facades | Login/usuarios/clientes delegan correctamente. | Pruebas y compilación correctas. | 2 pruebas de Facade. | ✅ Completado |
-| T-13 | Toast/modal/vista previa visual | Avisos y controles visibles. | Implementados; recorrido manual completo pendiente. | Código/build. | 🟡 Parcial |
+| T-13 | Toast/modal/vista previa visual | Avisos y controles visibles. | Implementados; recorrido manual completo pendiente. | Código/build. | 🟡 En validación |
 | T-14 | Solicitudes simultáneas | Una sola inserción. | No ejecutada. | — | ⏳ Pendiente |
 
 ## 6. Respuestas HTTP
@@ -89,7 +89,7 @@
 | 401 | Sin sesión. | No autenticado. | Sí |
 | 403 | Rol/permiso insuficiente. | Sin autorización. | Sí |
 | 409 | Cliente duplicado. | `CLIENTE_DUPLICADO`. | Sí |
-| 500 | Error inesperado. | Sin detalle técnico al navegador. | Parcial: manejador documentado; no se forzó un error interno. |
+| 500 | Error inesperado. | Sin detalle técnico al navegador. | En validación: manejador documentado; no se forzó un error interno. |
 
 ## 7. Base de datos
 
@@ -117,7 +117,7 @@
 | Avance | Cantidad | Lectura rápida |
 |---|---:|---|
 | ✅ Completado | 6 | Funciones terminadas y con la evidencia indicada. |
-| 🟡 Parcial | 3 | Implementadas, pero con una verificación manual o controlada pendiente. |
+| 🟡 En validación | 3 | Implementadas, pero con una verificación manual o controlada pendiente. |
 | ⏳ Pendiente | 3 | Fuera de alcance o aún no ejecutadas. |
 
 ### ✅ Funcionalidades completadas
@@ -131,7 +131,7 @@
 | C-05 | Facade/Repository. | Código y pruebas de integración. |
 | C-06 | Identificadores operativos `.com`. | Flyway v6, MySQL y login Recepcionista. |
 
-### 🟡 Funcionalidades parciales
+### 🟡 Funcionalidades en validación
 
 | ID | Funcionalidad | Parte terminada | Parte faltante |
 |---|---|---|---|
