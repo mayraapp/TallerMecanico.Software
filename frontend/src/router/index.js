@@ -21,11 +21,15 @@ const routes = [
   { path: '/change-password', component: TemporaryPasswordView, meta: { auth: true, passwordOnly: true } },
   { path: '/', component: DashboardView, meta: { auth: true } },
   { path: '/register-user', component: RegisterUserView, meta: { auth: true, permission: 'USERS_CREATE' } },
-  { path: '/clientes/nuevo', component: ClientRegistrationView, meta: { auth: true, permission: 'CLIENTE_CREAR' } },
+  { path: '/clientes/registro', component: ClientRegistrationView, alias: '/clientes/nuevo', meta: { auth: true, permission: 'CLIENTE_CREAR' } },
   { path: '/users', component: UsersView, meta: { auth: true, permission: 'USERS_VIEW' } }, { path: '/roles', component: RolesView, meta: { auth: true, permission: 'PERMISSIONS_MANAGE' } },
   { path: '/audit', component: AuditView, meta: { auth: true, permission: 'AUDIT_VIEW' } }, { path: '/denied', component: DeniedView, meta: { auth: true } }, { path: '/:pathMatch(.*)*', component: NotFoundView, meta: { public: true } },
 ]
 const router = createRouter({ history: createWebHistory(), routes })
+/**
+ * Hydrates the protected session and denies unauthenticated, password-change or permission-invalid routes.
+ * Backend Spring Security remains authoritative for every API operation.
+ */
 router.beforeEach(async (to) => {
   const auth = useAuthStore(); await auth.bootstrap()
   if (to.meta.public && auth.authenticated && !auth.user.requiresPasswordChange && !['/verify-code', '/reset-password'].includes(to.path)) return '/'

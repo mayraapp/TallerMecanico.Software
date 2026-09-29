@@ -11,12 +11,35 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+/**
+ * HTTP boundary for authentication and password lifecycle endpoints.
+ *
+ * <p>For the Phase 02 login flow, this controller delegates credential verification to
+ * {@link AuthFacade}; it retains cookies, rate limiting and the M01 password operations.</p>
+ */
 public class AuthController {
-    private final AuthService auth; private final CurrentUserService current; private final RateLimitService rateLimit; private final JwtService jwt; private final AppSecurityProperties properties;
-    public AuthController(AuthService auth, CurrentUserService current, RateLimitService rateLimit, JwtService jwt, AppSecurityProperties properties) { this.auth = auth; this.current = current; this.rateLimit = rateLimit; this.jwt = jwt; this.properties = properties; }
+    private final AuthService auth; private final AuthFacade authFacade; private final CurrentUserService current; private final RateLimitService rateLimit; private final JwtService jwt; private final AppSecurityProperties properties;
+    /**
+     * Creates the controller with the existing security collaborators and Phase 02 facade.
+     *
+     * @param auth service for established M01 authentication operations
+     * @param authFacade facade that coordinates the login use case
+     * @param current resolver for the authenticated account
+     * @param rateLimit request-attempt limiter
+     * @param jwt JWT expiration provider
+     * @param properties cookie-security configuration
+     */
+    public AuthController(AuthService auth, AuthFacade authFacade, CurrentUserService current, RateLimitService rateLimit, JwtService jwt, AppSecurityProperties properties) { this.auth = auth; this.authFacade = authFacade; this.current = current; this.rateLimit = rateLimit; this.jwt = jwt; this.properties = properties; }
     @PostMapping("/login")
+    /**
+     * Authenticates a validated request through {@link AuthFacade} and stores the JWT only in an HTTP-only cookie.
+     *
+     * @param request validated credentials; invalid credentials produce the existing controlled 401 response
+     * @param servletResponse request used only to read the source IP for rate limiting and auditing
+     * @return safe authenticated user data, never a password hash or JWT body field
+     */
     public ResponseEntity<AuthDtos.LoginResponse> login(@Valid @RequestBody AuthDtos.LoginRequest request, HttpServletRequest servletResponse) {
-        rateLimit.check("login", RequestInfo.ip(servletResponse)); AuthService.LoginResult result = auth.login(request, RequestInfo.ip(servletResponse)); return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, sessionCookie(result.token()).toString()).body(result.response());
+        rateLimit.check("login", RequestInfo.ip(servletResponse)); AuthService.LoginResult result = authFacade.iniciarSesion(request, RequestInfo.ip(servletResponse)); return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, sessionCookie(result.token()).toString()).body(result.response());
     }
     @PostMapping("/logout") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@CookieValue(value = "TM_SESSION", required = false) String token, HttpServletRequest request, HttpServletResponse response) { auth.logout(token, current.require(), RequestInfo.ip(request)); response.addHeader(HttpHeaders.SET_COOKIE, clearCookie().toString()); }

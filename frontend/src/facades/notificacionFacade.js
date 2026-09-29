@@ -4,6 +4,7 @@ const state = reactive({ items: [] })
 let nextId = 1
 const timers = new Map()
 
+/** Creates a timed, accessible toast record and returns its identifier for manual dismissal. */
 function mostrar(type, title, message, duration = 5500) {
   const item = { id: nextId++, type, title, message, duration, remaining: duration }
   state.items.push(item)
@@ -16,6 +17,7 @@ function mostrar(type, title, message, duration = 5500) {
   return item.id
 }
 
+/** Stops a toast timer and removes the notification from the reactive queue. */
 function cerrar(id) {
   const timer = timers.get(id)
   if (timer) { window.clearInterval(timer.interval); window.clearTimeout(timer.timeout); timers.delete(id) }
@@ -23,6 +25,7 @@ function cerrar(id) {
   if (index >= 0) state.items.splice(index, 1)
 }
 
+/** Centralizes success, error, warning and information notifications for protected views. */
 export const notificacionFacade = {
   state,
   cerrar,

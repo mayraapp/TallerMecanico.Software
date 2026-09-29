@@ -13,6 +13,12 @@ import java.time.*;
 import java.util.*;
 
 @Service
+/**
+ * Contains reusable client business rules and delegates persistence-only work to repositories.
+ *
+ * <p>It normalizes data before duplicate checks, validates authoritative constraints and returns
+ * DTOs without exposing JPA entities.</p>
+ */
 public class ClienteService {
     private static final String DUPLICATE_MESSAGE = "Este cliente ya se encuentra registrado. Revisa el correo electrónico o el teléfono personal.";
     private final ClienteRepository clientes;
@@ -23,10 +29,12 @@ public class ClienteService {
         this.direcciones = direcciones;
     }
 
+    /** Internal value object produced after trimming and canonicalizing the incoming client DTO. */
     public record DatosNormalizados(String nombreCompleto, String nombreNormalizado, String contactoAlternativo, LocalDate fechaNacimiento,
                                     String telefonoPersonal, String telefonoTrabajo, String emailPersonal, String emailTrabajo,
                                     String calleNumero, String colonia, String municipio, String estado, String codigoPostal) { }
 
+    /** Normalizes whitespace, e-mail casing, telephone representation and name comparison keys. */
     public DatosNormalizados normalizarDatos(ClienteDtos.CreateClientRequest request) {
         ClienteDtos.AddressRequest address = request.direccion();
         return new DatosNormalizados(
@@ -36,6 +44,7 @@ public class ClienteService {
         );
     }
 
+    /** Validates authoritative birth-date, telephone and postal-code business rules. */
     public void validarDatos(DatosNormalizados data) {
         if (!data.fechaNacimiento().isBefore(LocalDate.now()) || data.fechaNacimiento().isBefore(LocalDate.now().minusYears(120))) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "FECHA_NACIMIENTO_INVALIDA", "La fecha de nacimiento debe ser anterior a hoy y estar dentro de un rango razonable.");
@@ -46,6 +55,7 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
+    /** Rejects a record that matches any configured client duplicate key. */
     public void verificarDuplicado(DatosNormalizados data) {
         if (clientes.existsByCorreoPersonalNormalizado(data.emailPersonal())
             || clientes.existsByTelefonoPersonalNormalizado(data.telefonoPersonal())
@@ -55,6 +65,7 @@ public class ClienteService {
     }
 
     @Transactional
+    /** Persists the client and its required initial address inside the current transaction. */
     public Cliente guardarCliente(DatosNormalizados data, UserAccount actor) {
         try {
             Cliente cliente = new Cliente();
@@ -87,6 +98,7 @@ public class ClienteService {
     }
 
     @Transactional
+    /** Stores only a validated, private photo reference after the file is safely written. */
     public Cliente guardarFotografia(Cliente cliente, String referencia, UserAccount actor) {
         cliente.setFotografiaReferencia(referencia);
         cliente.setActualizadoPor(actor);
@@ -94,27 +106,37 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
+    /** Finds a client for protected secondary operations such as photo retrieval. */
     public Cliente buscarPorId(Long id) {
         return clientes.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CLIENTE_NO_ENCONTRADO", "El cliente solicitado no existe."));
     }
 
+    /** Maps an entity to the public-safe response and calculates age at response time. */
     public ClienteDtos.ClientResponse respuesta(Cliente cliente) {
         String fotografiaUrl = cliente.getFotografiaReferencia() == null ? null : "/api/clientes/" + cliente.getId() + "/fotografia";
         return new ClienteDtos.ClientResponse(cliente.getId(), cliente.getNombreCompleto(), cliente.getFechaNacimiento(), edadDe(cliente.getFechaNacimiento()), cliente.getTelefonoPersonalNormalizado(), cliente.getCorreoPersonalNormalizado(), cliente.getEstadoRegistro(), fotografiaUrl, "Cliente registrado correctamente.");
     }
 
+    /** Builds the single safe conflict response used for every duplicate key. */
     private ApiException clienteDuplicado() { return new ApiException(HttpStatus.CONFLICT, "CLIENTE_DUPLICADO", DUPLICATE_MESSAGE); }
+    /** Rejects a normalized telephone outside the persisted business range. */
     private void validarTelefono(String telefono, String code, String message) {
         if (telefono == null || !telefono.matches("\\d{10,15}")) throw new ApiException(HttpStatus.BAD_REQUEST, code, message);
     }
+    /** Trims a value and collapses internal whitespace without changing its meaning. */
     private String limpiarEspacios(String value) { return value == null ? null : value.trim().replaceAll("\\s+", " "); }
+    /** Converts a blank optional value into {@code null}. */
     private String limpiarOpcional(String value) { String result = limpiarEspacios(value); return result == null || result.isBlank() ? null : result; }
+    /** Produces a lowercase optional e-mail key. */
     private String normalizarCorreo(String value) { String result = limpiarOpcional(value); return result == null ? null : result.toLowerCase(Locale.ROOT); }
+    /** Removes permitted formatting characters from an optional phone key. */
     private String normalizarTelefono(String value) { String result = limpiarOpcional(value); return result == null ? null : result.replaceAll("[\\s()\\-]", ""); }
+    /** Produces an accent-insensitive lowercase comparison key for a person name. */
     private String normalizarNombre(String value) {
         String cleaned = limpiarEspacios(value);
         String withoutAccents = Normalizer.normalize(cleaned, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return withoutAccents.toLowerCase(Locale.ROOT);
     }
+    /** Calculates response-only age from the source birth date. */
     private int edadDe(LocalDate fechaNacimiento) { return Period.between(fechaNacimiento, LocalDate.now()).getYears(); }
 }

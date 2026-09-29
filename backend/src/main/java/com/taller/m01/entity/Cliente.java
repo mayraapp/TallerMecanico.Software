@@ -5,6 +5,12 @@ import java.time.*;
 
 @Entity
 @Table(name = "clientes")
+/**
+ * Persistent client aggregate for Phase 02.
+ *
+ * <p>It stores normalized duplicate keys and audit references, but deliberately does not store an
+ * editable age; services calculate age from {@code fechaNacimiento}.</p>
+ */
 public class Cliente {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

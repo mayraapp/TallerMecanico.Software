@@ -34,9 +34,9 @@ class ClienteControllerIntegrationTests {
     void rolesAutorizadosRegistranClienteYSeGuardaDireccion() throws Exception {
         long expectedClients = clientes.count();
         long expectedAddresses = direcciones.count();
-        for (String role : new String[]{"SUPERADMIN", "ADMIN", "RECEPTIONIST"}) {
+        for (String role : new String[]{"ADMIN", "RECEPTIONIST"}) {
             UserAccount actor = actor(role);
-            registrar(solicitud("María López " + nombrePara(role), "cliente." + role.toLowerCase() + "@correo.test", "555 123 45" + (role.equals("SUPERADMIN") ? "10" : role.equals("ADMIN") ? "11" : "12")), null, actor)
+            registrar(solicitud("María López " + nombrePara(role), "cliente." + role.toLowerCase() + "@correo.test", "555 123 45" + (role.equals("ADMIN") ? "11" : "12")), null, actor)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nombreCompleto").value("María López " + nombrePara(role)))
                 .andExpect(jsonPath("$.edad").isNumber())
@@ -55,6 +55,12 @@ class ClienteControllerIntegrationTests {
     @Test
     void mecanicoSinPermisoRecibe403() throws Exception {
         registrar(solicitud("María López", "mecanico@correo.test", "5551234567"), null, actor("MECHANIC"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void superadministradorSinPermisoOperativoRecibe403() throws Exception {
+        registrar(solicitud("María López", "superadmin@correo.test", "5551234567"), null, actor("SUPERADMIN"))
             .andExpect(status().isForbidden());
     }
 
@@ -93,9 +99,9 @@ class ClienteControllerIntegrationTests {
 
     @Test
     void fotografiaNoPermitidaRecibe400YNoGuardaCliente() throws Exception {
-        UserAccount actor = actor("SUPERADMIN");
+        UserAccount actor = actor("ADMIN");
         long before = clientes.count();
-        MockMultipartFile invalidPhoto = new MockMultipartFile("fotografia", "archivo.txt", MediaType.TEXT_PLAIN_VALUE, "esto no es una imagen".getBytes());
+        MockMultipartFile invalidPhoto = new MockMultipartFile("fotografia", "archivo.png", MediaType.IMAGE_PNG_VALUE, "esto no es una imagen".getBytes());
         registrar(solicitud("María López", "foto.invalida@correo.test", "5551234567"), invalidPhoto, actor)
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("FOTOGRAFIA_INVALIDA"));
         Assertions.assertEquals(before, clientes.count());
@@ -103,11 +109,13 @@ class ClienteControllerIntegrationTests {
 
     @Test
     void fotografiaDemasiadoGrandeRecibe400YNoGuardaCliente() throws Exception {
-        UserAccount actor = actor("SUPERADMIN");
+        UserAccount actor = actor("RECEPTIONIST");
         long before = clientes.count();
-        MockMultipartFile tooLarge = new MockMultipartFile("fotografia", "foto.png", MediaType.IMAGE_PNG_VALUE, new byte[5 * 1024 * 1024 + 1]);
+        byte[] bytes = new byte[15 * 1024 * 1024 + 1];
+        bytes[0] = (byte) 0x89; bytes[1] = 0x50; bytes[2] = 0x4E; bytes[3] = 0x47; bytes[4] = 0x0D; bytes[5] = 0x0A; bytes[6] = 0x1A; bytes[7] = 0x0A;
+        MockMultipartFile tooLarge = new MockMultipartFile("fotografia", "foto.png", MediaType.IMAGE_PNG_VALUE, bytes);
         registrar(solicitud("María López", "foto.grande@correo.test", "5551234567"), tooLarge, actor)
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("FOTOGRAFIA_DEMASIADO_GRANDE"));
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("FOTOGRAFIA_INVALIDA"));
         Assertions.assertEquals(before, clientes.count());
     }
 
@@ -122,6 +130,40 @@ class ClienteControllerIntegrationTests {
             .andExpect(status().isOk()).andExpect(content().contentType(MediaType.IMAGE_PNG));
         mockMvc.perform(get("/api/clientes/{id}/fotografia", clientId)).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/clientes/{id}/fotografia", clientId).with(user(new AuthenticatedUser(actor("MECHANIC"))))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void fotografiaVaciaRecibe400YNoGuardaCliente() throws Exception {
+        UserAccount actor = actor("ADMIN");
+        long before = clientes.count();
+        MockMultipartFile empty = new MockMultipartFile("fotografia", "vacia.png", MediaType.IMAGE_PNG_VALUE, new byte[0]);
+        registrar(solicitud("María López", "foto.vacia@correo.test", "5551234567"), empty, actor)
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("FOTOGRAFIA_INVALIDA"));
+        Assertions.assertEquals(before, clientes.count());
+    }
+
+    @Test
+    void jpegPngYWebpValidosSeAceptan() throws Exception {
+        UserAccount actor = actor("ADMIN");
+        for (FotoPrueba foto : new FotoPrueba[]{
+            new FotoPrueba("jpeg", MediaType.IMAGE_JPEG_VALUE, new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00}),
+            new FotoPrueba("png", MediaType.IMAGE_PNG_VALUE, new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00}),
+            new FotoPrueba("webp", "image/webp", new byte[]{0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50})
+        }) {
+            MockMultipartFile archivo = new MockMultipartFile("fotografia", "cliente." + foto.extension(), foto.mimeType(), foto.contenido());
+            registrar(solicitud("María López " + foto.extension(), "foto." + foto.extension() + "@correo.test", "55512345" + (foto.extension().equals("jpeg") ? "67" : foto.extension().equals("png") ? "68" : "69")), archivo, actor)
+                .andExpect(status().isCreated());
+        }
+    }
+
+    @Test
+    void fotografiaExactamenteQuinceMbSeAcepta() throws Exception {
+        UserAccount actor = actor("RECEPTIONIST");
+        byte[] bytes = new byte[15 * 1024 * 1024];
+        bytes[0] = (byte) 0x89; bytes[1] = 0x50; bytes[2] = 0x4E; bytes[3] = 0x47; bytes[4] = 0x0D; bytes[5] = 0x0A; bytes[6] = 0x1A; bytes[7] = 0x0A;
+        MockMultipartFile photo = new MockMultipartFile("fotografia", "limite.png", MediaType.IMAGE_PNG_VALUE, bytes);
+        registrar(solicitud("María López Límite", "foto.limite@correo.test", "5551234570"), photo, actor)
+            .andExpect(status().isCreated());
     }
 
     private ResultActions registrar(ClienteDtos.CreateClientRequest request, MultipartFile photo, UserAccount actor) throws Exception {
@@ -164,5 +206,6 @@ class ClienteControllerIntegrationTests {
         return users.saveAndFlush(user);
     }
 
-    private String nombrePara(String role) { return role.equals("SUPERADMIN") ? "Ramos" : role.equals("ADMIN") ? "Santos" : "Núñez"; }
+    private String nombrePara(String role) { return role.equals("ADMIN") ? "Santos" : "Núñez"; }
+    private record FotoPrueba(String extension, String mimeType, byte[] contenido) { }
 }

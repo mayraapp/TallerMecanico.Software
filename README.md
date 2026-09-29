@@ -2,7 +2,7 @@
 
 Proyecto web del taller mecánico. La entrega actual corresponde a **M01: seguridad, autenticación, autorización, roles y usuarios**.
 
-El avance de **Fase 02: Registro de clientes** se documenta con alcance, evidencias y pendientes reales en [FASE_02.md](FASE_02.md).
+El avance de **Fase 02: Registro de clientes** se documenta con alcance, evidencias y pendientes reales en [FASE_02_REGISTRO_DE_CLIENTES.md](FASE_02_REGISTRO_DE_CLIENTES.md). La explicación de clases, métodos y funciones está en [FASE_02_DOCUMENTACION_CODIGO.md](FASE_02_DOCUMENTACION_CODIGO.md).
 
 La documentación completa de la fase, los módulos terminados, las tablas, los archivos generados, la ubicación segura de la configuración local y las instrucciones de publicación está en [Planeacion_FaseInicial.md](Planeacion_FaseInicial.md).
 

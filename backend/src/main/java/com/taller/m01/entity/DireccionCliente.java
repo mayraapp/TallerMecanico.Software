@@ -5,6 +5,11 @@ import java.time.*;
 
 @Entity
 @Table(name = "direcciones_cliente")
+/**
+ * Persistent initial address associated with one client through a foreign key.
+ *
+ * <p>The separate entity keeps the client independent from future workshop associations.</p>
+ */
 public class DireccionCliente {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

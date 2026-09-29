@@ -12,11 +12,13 @@ const items = [
   { to: '/', label: 'Centro de control', icon: LayoutDashboard, permission: 'ADMIN_PANEL_VIEW' },
   { to: '/users', label: 'Usuarios', icon: Users, permission: 'USERS_VIEW' },
   { to: '/register-user', label: 'Registrar usuario', icon: UserPlus, permission: 'USERS_CREATE' },
-  { to: '/clientes/nuevo', label: 'Registrar cliente', icon: ContactRound, permission: 'CLIENTE_CREAR' },
+  { to: '/clientes/registro', label: 'Registro de clientes', icon: ContactRound, permission: 'CLIENTE_CREAR' },
   { to: '/roles', label: 'Roles y permisos', icon: ShieldCheck, permission: 'PERMISSIONS_MANAGE' },
   { to: '/audit', label: 'Auditoría', icon: ClipboardList, permission: 'AUDIT_VIEW' },
 ]
-const visibleItems = computed(() => items.filter((item) => auth.hasPermission(item.permission)))
+/** Keeps future-phase modules registered but hides them until their phase is enabled. */
+const visibleItems = computed(() => items.filter((item) => item.to === '/clientes/registro' && auth.hasPermission(item.permission)))
+/** Closes the authenticated session and returns to the public login route. */
 async function logout() { await auth.logout(); router.push('/login') }
 </script>
 

@@ -3,7 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ArrowLeft, CheckCircle2, KeyRound, UserPlus } from 'lucide-vue-next'
 import AppShell from '../components/AppShell.vue'
 import UiAlert from '../components/UiAlert.vue'
-import { api, apiError } from '../api/client'
+import { apiError } from '../api/client'
+import { usuarioFacade } from '../facades/usuarioFacade'
 
 const roles = ref([])
 const error = ref('')
@@ -13,20 +14,23 @@ const saving = ref(false)
 const form = reactive({ fullName: '', email: '', phone: '', temporaryPassword: '', confirmation: '', roleCode: '', status: 'ACTIVE' })
 const passwordValid = computed(() => form.temporaryPassword.length >= 8 && /[A-Z]/.test(form.temporaryPassword) && /[a-z]/.test(form.temporaryPassword) && /\d/.test(form.temporaryPassword) && /[^A-Za-z0-9]/.test(form.temporaryPassword) && form.temporaryPassword === form.confirmation)
 
+/** Restores the protected internal-registration form without changing the existing visual design. */
 function resetForm() {
   Object.assign(form, { fullName: '', email: '', phone: '', temporaryPassword: '', confirmation: '', roleCode: roles.value.find((role) => !['SUPERADMIN', 'PENDING'].includes(role.code))?.code || '', status: 'ACTIVE' })
 }
+/** Loads assignable roles through UsuarioFacade. */
 async function loadRoles() {
   loadingRoles.value = true
-  try { const { data } = await api.get('/roles'); roles.value = data; resetForm() } catch (e) { error.value = apiError(e) } finally { loadingRoles.value = false }
+  try { roles.value = await usuarioFacade.cargarRoles(); resetForm() } catch (e) { error.value = apiError(e) } finally { loadingRoles.value = false }
 }
+/** Validates client-side requirements then delegates protected account creation to UsuarioFacade. */
 async function submit() {
   error.value = ''; success.value = ''
   if (!form.fullName || !form.email || !form.roleCode) { error.value = 'Complete nombre, correo y rol.'; return }
   if (!passwordValid.value) { error.value = 'La contraseña temporal debe cumplir todos los requisitos y coincidir.'; return }
   saving.value = true
   try {
-    const { data } = await api.post('/users', { ...form, phone: form.phone || null })
+    const data = await usuarioFacade.registrarUsuario({ ...form, phone: form.phone || null })
     success.value = `La cuenta de ${data.fullName} fue registrada. Deberá cambiar su contraseña al ingresar.`
     resetForm()
   } catch (e) { error.value = apiError(e) } finally { saving.value = false }

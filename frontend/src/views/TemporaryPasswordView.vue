@@ -8,7 +8,9 @@ import UiAlert from '../components/UiAlert.vue'
 
 const router = useRouter(); const auth = useAuthStore(); const currentPassword = ref(''); const newPassword = ref(''); const confirmation = ref(''); const error = ref(''); const loading = ref(false)
 const valid = computed(() => newPassword.value.length >= 8 && /[A-Z]/.test(newPassword.value) && /[a-z]/.test(newPassword.value) && /\d/.test(newPassword.value) && /[^A-Za-z0-9]/.test(newPassword.value) && newPassword.value === confirmation.value)
-async function submit() { error.value = ''; if (!valid.value) { error.value = 'La nueva contraseña debe incluir 8 caracteres, mayúscula, minúscula, número, símbolo y confirmación.'; return }; loading.value = true; try { await api.post('/auth/change-temporary-password', { currentPassword: currentPassword.value, newPassword: newPassword.value, confirmation: confirmation.value }); await auth.refresh(); router.push('/') } catch (e) { error.value = apiError(e) } finally { loading.value = false } }
+/** Changes a temporary password and continues to the only currently enabled operational module. */
+/** Changes a required temporary password, refreshes the safe session DTO and opens client registration. */
+async function submit() { error.value = ''; if (!valid.value) { error.value = 'La nueva contraseña debe incluir 8 caracteres, mayúscula, minúscula, número, símbolo y confirmación.'; return }; loading.value = true; try { await api.post('/auth/change-temporary-password', { currentPassword: currentPassword.value, newPassword: newPassword.value, confirmation: confirmation.value }); await auth.refresh(); router.push('/clientes/registro') } catch (e) { error.value = apiError(e) } finally { loading.value = false } }
 async function cancelLogin() { try { await auth.logout() } finally { router.push('/login') } }
 </script>
 

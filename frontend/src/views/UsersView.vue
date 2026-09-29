@@ -3,19 +3,31 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { Plus, Search, Pencil, LockKeyhole, UserCheck, ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
 import AppShell from '../components/AppShell.vue'
 import UiAlert from '../components/UiAlert.vue'
-import { api, apiError } from '../api/client'
+import { apiError } from '../api/client'
+import { usuarioFacade } from '../facades/usuarioFacade'
 
 const users=ref([]), roles=ref([]), meta=reactive({page:0,size:10,totalPages:0,totalElements:0}), filters=reactive({query:'',role:'',status:''}), loading=ref(false), error=ref(''), success=ref(''), modal=ref(false), editing=ref(null), saving=ref(false)
 const form=reactive({fullName:'',email:'',phone:'',temporaryPassword:'',confirmation:'',roleCode:'',status:'ACTIVE'})
 const passwordOk=computed(()=>form.temporaryPassword.length>=8&&/[A-Z]/.test(form.temporaryPassword)&&/[a-z]/.test(form.temporaryPassword)&&/\d/.test(form.temporaryPassword)&&/[^A-Za-z0-9]/.test(form.temporaryPassword)&&form.temporaryPassword===form.confirmation)
+/** Resets the internal-user form while preserving the existing role restrictions. */
 function resetForm(){Object.assign(form,{fullName:'',email:'',phone:'',temporaryPassword:'',confirmation:'',roleCode:roles.value.find(r=>r.code!=='SUPERADMIN')?.code||'',status:'ACTIVE'})}
-async function load(page=meta.page){loading.value=true;error.value='';try{const {data}=await api.get('/users',{params:{...filters,status:filters.status||undefined,page,size:meta.size}});users.value=data.content;Object.assign(meta,data)}catch(e){error.value=apiError(e)}finally{loading.value=false}}
-async function loadRoles(){try{const {data}=await api.get('/roles');roles.value=data}catch(e){error.value=apiError(e)}}
+/** Loads protected account data through UsuarioFacade. */
+/** Loads the protected paged user list through UsuarioFacade. */
+async function load(page=meta.page){loading.value=true;error.value='';try{const data=await usuarioFacade.listarUsuarios({...filters,status:filters.status||undefined,page,size:meta.size});users.value=data.content;Object.assign(meta,data)}catch(e){error.value=apiError(e)}finally{loading.value=false}}
+/** Loads assignable role DTOs through UsuarioFacade. */
+/** Loads roles through the frontend facade without exposing HTTP calls to the template. */
+async function loadRoles(){try{roles.value=await usuarioFacade.cargarRoles()}catch(e){error.value=apiError(e)}}
 function openCreate(){editing.value=null;resetForm();modal.value=true;success.value=''}
 function openEdit(user){editing.value=user;Object.assign(form,{fullName:user.fullName,email:user.email,phone:user.phone||'',temporaryPassword:'',confirmation:'',roleCode:user.primaryRole,status:user.status});modal.value=true;success.value=''}
-async function save(){error.value=''; if(!form.fullName||!form.email||!form.roleCode){error.value='Complete los campos obligatorios.';return} if(!editing.value&&!passwordOk.value){error.value='La contraseña temporal debe cumplir la política y coincidir.';return}saving.value=true;try{if(editing.value){await api.put(`/users/${editing.value.id}`,{fullName:form.fullName,email:form.email,phone:form.phone||null});if(form.roleCode!==editing.value.primaryRole)await api.patch(`/users/${editing.value.id}/role`,{roleCode:form.roleCode});success.value='Usuario actualizado correctamente.'}else{await api.post('/users',{...form,phone:form.phone||null});success.value='Usuario creado. Deberá cambiar su contraseña temporal.'}modal.value=false;await load()}catch(e){error.value=apiError(e)}finally{saving.value=false}}
-async function setStatus(user){const next=user.status==='ACTIVE'?'INACTIVE':'ACTIVE';if(!confirm(`${next==='ACTIVE'?'Activar':'Desactivar'} a ${user.fullName}?`))return;try{await api.patch(`/users/${user.id}/status`,{status:next});success.value='Estado actualizado.';await load()}catch(e){error.value=apiError(e)}}
-async function unlock(user){if(!confirm(`¿Desbloquear la cuenta de ${user.fullName}?`))return;try{await api.post(`/users/${user.id}/unlock`);success.value='Cuenta desbloqueada.';await load()}catch(e){error.value=apiError(e)}}
+/** Saves protected internal changes through UsuarioFacade without changing existing validations. */
+/** Validates visual requirements and delegates internal account changes to UsuarioFacade. */
+async function save(){error.value=''; if(!form.fullName||!form.email||!form.roleCode){error.value='Complete los campos obligatorios.';return} if(!editing.value&&!passwordOk.value){error.value='La contraseña temporal debe cumplir la política y coincidir.';return}saving.value=true;try{if(editing.value){await usuarioFacade.actualizarUsuario(editing.value.id,{fullName:form.fullName,email:form.email,phone:form.phone||null});if(form.roleCode!==editing.value.primaryRole)await usuarioFacade.cambiarRol(editing.value.id,{roleCode:form.roleCode});success.value='Usuario actualizado correctamente.'}else{await usuarioFacade.registrarUsuario({...form,phone:form.phone||null});success.value='Usuario creado. Deberá cambiar su contraseña temporal.'}modal.value=false;await load()}catch(e){error.value=apiError(e)}finally{saving.value=false}}
+/** Requests a protected active/inactive transition after existing user confirmation. */
+/** Sends an authorized active/inactive request through UsuarioFacade after the existing confirmation. */
+async function setStatus(user){const next=user.status==='ACTIVE'?'INACTIVE':'ACTIVE';if(!confirm(`${next==='ACTIVE'?'Activar':'Desactivar'} a ${user.fullName}?`))return;try{await usuarioFacade.cambiarEstado(user.id,{status:next});success.value='Estado actualizado.';await load()}catch(e){error.value=apiError(e)}}
+/** Requests a protected account unlock after existing user confirmation. */
+/** Requests an authorized account unlock through UsuarioFacade after confirmation. */
+async function unlock(user){if(!confirm(`¿Desbloquear la cuenta de ${user.fullName}?`))return;try{await usuarioFacade.desbloquearUsuario(user.id);success.value='Cuenta desbloqueada.';await load()}catch(e){error.value=apiError(e)}}
 function statusClass(status){return `status-${status.toLowerCase()}`}
 let timer;watch(()=>[filters.query,filters.role,filters.status],()=>{clearTimeout(timer);timer=setTimeout(()=>load(0),300)})
 onMounted(async()=>{await loadRoles();await load(0)})
